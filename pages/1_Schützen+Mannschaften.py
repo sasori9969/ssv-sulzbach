@@ -1,0 +1,114 @@
+import streamlit as st
+import json
+from utils import load_participants, save_participants  # Importiere die Funktionen
+# ... (Funktionen zum Laden und Speichern von Wettbewerben und Teilnehmern)
+
+st.title("Mannschaften und Schützen verwalten")
+
+participants = load_participants()
+
+# Eingabe für Schützen
+st.subheader("Schützen hinzufügen/bearbeiten")
+shooter_name = st.text_input("Name")
+shooter_firstname = st.text_input("Vorname")
+
+if st.button("Schützen hinzufügen"):
+    if shooter_name and shooter_firstname:
+        participants.setdefault("shooters", {})
+        participants["shooters"][f"{shooter_name}, {shooter_firstname}"] = {"teams": []}
+        save_participants(participants)
+        st.success(f"Schütze '{shooter_name}, {shooter_firstname}' hinzugefügt.")
+        st.rerun()  # Seite neu laden, um Änderungen anzuzeigen
+    else:
+        st.error("Bitte Name und Vorname eingeben.")
+
+# Eingabe für Mannschaften
+st.subheader("Mannschaften hinzufügen/bearbeiten")
+team_name = st.text_input("Mannschaftsname")
+
+if st.button("Mannschaft hinzufügen"):
+    if team_name:
+        participants.setdefault("teams", {})
+        participants["teams"][team_name] = {"members": []}
+        save_participants(participants)
+        st.success(f"Mannschaft '{team_name}' hinzugefügt.")
+        st.rerun()  # Seite neu laden, um Änderungen anzuzeigen
+    else:
+        st.error("Bitte Mannschaftsnamen eingeben.")
+
+# ... (Funktionen zum Hinzufügen von Schützen und Mannschaften)
+
+# Anzeige und Bearbeitung von Schützen und Mannschaften
+st.subheader("Vorhandene Schützen")
+if "shooters" in participants:
+    for shooter_name, shooter_data in participants["shooters"].items():
+        st.write(f"- {shooter_name} (Teams: {', '.join(shooter_data['teams'])})")
+
+        if st.checkbox(f"Bearbeiten: {shooter_name}"):
+            new_name = st.text_input("Neuer Name", value=shooter_name.split(",")[0].strip())
+            new_firstname = st.text_input("Neuer Vorname", value=shooter_name.split(",")[1].strip())
+            
+            if st.button("Änderungen speichern", key=f"save_shooter_{shooter_name}"):  # Eindeutiger Key!
+                if new_name and new_firstname:
+                    del participants["shooters"][shooter_name]  # Alten Eintrag löschen
+                    participants["shooters"][f"{new_name}, {new_firstname}"] = shooter_data
+                    save_participants(participants)
+                    st.success(f"Schütze '{shooter_name}' bearbeitet.")
+                    st.rerun()  # Seite neu laden, um Änderungen anzuzeigen
+                else:
+                    st.error("Bitte Name und Vorname eingeben.")
+
+            if st.button("Schütze löschen", key=f"delete_shooter_{shooter_name}"): # Eindeutiger Key!
+                del participants["shooters"][shooter_name]
+                save_participants(participants)
+                st.success(f"Schütze '{shooter_name}' gelöscht.")
+                st.rerun()
+
+st.subheader("Vorhandene Mannschaften")
+if "teams" in participants:
+    for team_name, team_data in participants["teams"].items():
+        st.write(f"- {team_name} (Mitglieder: {', '.join(team_data['members'])})")
+
+        if st.checkbox(f"Bearbeiten: {team_name}"):
+            new_team_name = st.text_input("Neuer Mannschaftsname", value=team_name)
+
+            if st.button("Änderungen speichern", key=f"save_team_{team_name}"):  # Eindeutiger Key!
+                if new_team_name:
+                    del participants["teams"][team_name]  # Alten Eintrag löschen
+                    participants["teams"][new_team_name] = team_data
+                    save_participants(participants)
+                    st.success(f"Mannschaft '{team_name}' bearbeitet.")
+                    st.rerun()  # Seite neu laden, um Änderungen anzuzeigen
+                else:
+                    st.error("Bitte Mannschaftsnamen eingeben.")
+            
+            if st.button("Mannschaft löschen", key=f"delete_team_{team_name}"): # Eindeutiger Key!
+                del participants["teams"][team_name]
+                # Entferne die Mannschaft aus den Schützen
+                for shooter in participants["shooters"]:
+                    if team_name in participants["shooters"][shooter]["teams"]:
+                        participants["shooters"][shooter]["teams"].remove(team_name)
+
+                save_participants(participants)
+                st.success(f"Mannschaft '{team_name}' gelöscht.")
+                st.rerun()
+                # ... (Code von oben)
+
+st.subheader("Mitglieder zu Mannschaften hinzufügen")
+if "teams" in participants and "shooters" in participants:  # Sicherstellen, dass Daten vorhanden sind
+    selected_team = st.selectbox("Mannschaft auswählen", options=list(participants["teams"].keys()))
+    available_shooters = list(participants["shooters"].keys())
+    selected_members = st.multiselect("Mitglieder auswählen", options=available_shooters)
+
+    if st.button("Mitglieder hinzufügen"):
+        if selected_team and selected_members:
+            participants["teams"][selected_team]["members"] = selected_members
+            # Aktualisiere auch die Team-Zugehörigkeit der Schützen
+            for member in selected_members:
+                if selected_team not in participants["shooters"][member]["teams"]:
+                    participants["shooters"][member]["teams"].append(selected_team)
+            save_participants(participants)
+            st.success(f"Mitglieder zu '{selected_team}' hinzugefügt.")
+            st.rerun()
+        else:
+            st.error("Bitte Mannschaft und Mitglieder auswählen.")
