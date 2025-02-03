@@ -77,6 +77,7 @@ if competitions and participants and "teams" in participants:
                 with col2:
                     st.write(shooter)
                 with col3:
+                    result = results_table.get(shooter, 0)
                     new_result = st.number_input("Ergebnis", value=result, key=f"{selected_competition}-{shooter}")
                 with col4:
                     if st.button("Ändern", key=f"change-{selected_competition}-{shooter}"):
