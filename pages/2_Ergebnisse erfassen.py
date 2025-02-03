@@ -16,28 +16,41 @@ if competitions and participants and "shooters" in participants:
     if input_mode == "Mannschaft" and "teams" in participants:
         team_shooters = {}
         for team_name, team_members in participants["teams"].items():
-            team_shooters[team_name] = [shooter for shooter in team_members if shooter in participants["shooters"]]
+            # Nur Schützen berücksichtigen, die auch in der Schützenliste vorhanden sind
+            team_shooters[team_name] = [
+                shooter for shooter in team_members if shooter in participants["shooters"]
+            ]
 
         selected_team = st.selectbox("Mannschaft auswählen", options=list(team_shooters.keys()))
-        selected_shooter = st.selectbox("Schützen auswählen", options=team_shooters[selected_team])
+
+        # Überprüfen, ob Schützen für das ausgewählte Team vorhanden sind
+        if team_shooters[selected_team]:
+            selected_shooter = st.selectbox(
+                "Schützen auswählen", options=team_shooters[selected_team]
+            )
+        else:
+            st.warning(f"Keine Schützen für das Team '{selected_team}' gefunden.")
+            selected_shooter = None  # Oder eine andere geeignete Behandlung
+
     else:  # Einzelperson
         selected_shooter = st.selectbox("Schützen auswählen", options=list(participants["shooters"].keys()))
 
-    result = st.number_input("Ergebnis eingeben")
+    if selected_shooter: # Nur wenn ein Schütze ausgewählt wurde
+        result = st.number_input("Ergebnis eingeben")
 
-    if st.button("Ergebnis speichern"):
-        if selected_competition and selected_shooter:
-            if "results" not in participants:
-                participants["results"] = {}
-            if selected_competition not in participants["results"]:
-                participants["results"][selected_competition] = {}
-            participants["results"][selected_competition][selected_shooter] = result
-            save_participants(participants)
-            st.success(f"Ergebnis für '{selected_shooter}' im Wettbewerb '{selected_competition}' gespeichert.")
-            st.rerun()
+        if st.button("Ergebnis speichern"):
+            if selected_competition and selected_shooter:
+                if "results" not in participants:
+                    participants["results"] = {}
+                if selected_competition not in participants["results"]:
+                    participants["results"][selected_competition] = {}
+                participants["results"][selected_competition][selected_shooter] = result
+                save_participants(participants)
+                st.success(f"Ergebnis für '{selected_shooter}' im Wettbewerb '{selected_competition}' gespeichert.")
+                st.rerun()
 
-        else:
-            st.error("Bitte Wettbewerb und Schützen auswählen.")
+            else:
+                st.error("Bitte Wettbewerb und Schützen auswählen.")
 
     # Ergebnistabelle anzeigen (mit Team-Sortierung und Anzeige aller Schützen)
     st.subheader("Ergebnisse")
