@@ -1,11 +1,33 @@
 import streamlit as st
 import json
-from utils import load_competitions, load_participants, save_participants
 
+# Dummy-Funktionen zum Laden und Speichern (ersetze diese durch deine tatsächlichen Funktionen)
+def load_participants():
+    try:
+        with open("participants.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+
+def save_participants(participants):
+    with open("participants.json", "w") as f:
+        json.dump(participants, f, indent=4)
+
+# --- TEIL 1: MANNSCHAFTEN UND SCHÜTZEN VERWALTEN ---
+st.title("Mannschaften und Schützen verwalten")
+
+participants = load_participants()
+
+# ... (Der gesamte Code für die Eingabe, Bearbeitung und Anzeige von Schützen und Mannschaften bleibt gleich)
+
+# --- TEIL 2: ERGEBNISSE EINGEBEN UND ANZEIGEN ---
 st.title("Ergebnisse eingeben")
 
-competitions = load_competitions()
-participants = load_participants()
+competitions = {}  # Dummy für load_competitions
+# competitions = load_competitions() # Ersetze mit deiner Funktion
+# if not competitions:
+#     st.warning("Bitte erst Wettbewerbe anlegen.")
+#     st.stop()
 
 if competitions and participants and "shooters" in participants:
     selected_competition = st.selectbox("Wettbewerb auswählen", options=list(competitions.keys()))
@@ -35,7 +57,7 @@ if competitions and participants and "shooters" in participants:
     else:  # Einzelperson
         selected_shooter = st.selectbox("Schützen auswählen", options=list(participants["shooters"].keys()))
 
-    if selected_shooter: # Nur wenn ein Schütze ausgewählt wurde
+    if selected_shooter:  # Nur wenn ein Schütze ausgewählt wurde
         result = st.number_input("Ergebnis eingeben")
 
         if st.button("Ergebnis speichern"):
@@ -61,8 +83,8 @@ if competitions and participants and "shooters" in participants:
         sorted_shooters = []
         if "teams" in participants:
             for team_name in sorted(participants["teams"].keys()):
-                team_members = [shooter for shooter in participants["teams"][team_name] if shooter in results_table or shooter in participants["shooters"]] # Alle Schützen des Teams anzeigen
-                sorted_team_members = sorted(team_members, key=lambda x: results_table.get(x, -1), reverse=True) # Sortierung auch für Schützen ohne Ergebnis
+                team_members = [shooter for shooter in participants["teams"][team_name] if shooter in results_table or shooter in participants["shooters"]]  # Alle Schützen des Teams anzeigen
+                sorted_team_members = sorted(team_members, key=lambda x: results_table.get(x, -1), reverse=True)  # Sortierung auch für Schützen ohne Ergebnis
                 sorted_shooters.extend(sorted_team_members)
 
         # Hinzufügen von Schützen ohne Team (und ohne Ergebnis) am Ende
@@ -70,7 +92,7 @@ if competitions and participants and "shooters" in participants:
         sorted_shooters.extend(shooters_without_team)
 
         for shooter in sorted_shooters:
-            result = results_table.get(shooter, "") # Leeres Ergebnis für neue Schützen
+            result = results_table.get(shooter, "")  # Leeres Ergebnis für neue Schützen
             team_name = next((team for team, members in participants["teams"].items() if shooter in members), "Kein Team")
             col1, col2, col3, col4 = st.columns(4)
             with col1:
