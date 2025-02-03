@@ -61,7 +61,7 @@ if competitions and participants and "teams" in participants:
             all_shooters_in_comp = set()
             if "teams" in participants:
                 for team_name in sorted(participants["teams"].keys()):
-                    team_members = participants["teams"][team_name]
+                    team_members = participants["teams"][team_name]["members"]
                     all_shooters_in_comp.update(team_members)
             if "shooters" in participants:
                 all_shooters_in_comp.update(participants["shooters"].keys())
@@ -69,15 +69,18 @@ if competitions and participants and "teams" in participants:
             sorted_shooters = sorted(list(all_shooters_in_comp), key=lambda x: results_table.get(x, -1), reverse=True)
 
             for shooter in sorted_shooters:
-                result = results_table.get(shooter, "")
-                team_name = next((team for team, members in participants["teams"].items() if shooter in members), "Kein Team")
+                result = results_table.get(shooter, "") # Standardwert "" für leere Ergebnisse
+                team_name = next((team for team, data in participants["teams"].items() if shooter in data["members"]), "Kein Team")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     st.write(team_name)
                 with col2:
                     st.write(shooter)
                 with col3:
-                    result = results_table.get(shooter, 0)
+                    try: # Fehlerbehandlung für den Fall, dass result kein gültiger numerischer Wert ist.
+                        result = int(result) if result != "" else 0 # Wandle result in int um oder verwende 0, wenn es leer ist.
+                    except ValueError:
+                        result = 0
                     new_result = st.number_input("Ergebnis", value=result, key=f"{selected_competition}-{shooter}")
                 with col4:
                     if st.button("Ändern", key=f"change-{selected_competition}-{shooter}"):
