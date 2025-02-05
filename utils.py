@@ -2,7 +2,7 @@ import json
 
 def save_competitions(competitions):
     with open("competitions.json", "w") as f:
-        json.dump(competitions, f)
+        json.dump(competitions, f, indent=4)
 
 def load_competitions():
     try:
@@ -13,7 +13,7 @@ def load_competitions():
 
 def save_participants(participants):
     with open("participants.json", "w") as f:
-        json.dump(participants, f)
+        json.dump(participants, f, indent=4)
 
 def load_participants():
     try:
