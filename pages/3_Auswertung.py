@@ -28,32 +28,41 @@ if competitions and participants and "results" in participants and "shooters" in
                 st.dataframe(df_individual.set_index("Platz"))
 
                 # Mannschaftswertung
-                st.subheader("Mannschaftswertung")
-                team_results = {}
-                for shooter, result in results.items():
-                    for team in participants["shooters"].get(shooter, {}).get("teams", []):  # Handle missing teams
-                        team_results.setdefault(team, []).append(result)  # More efficient
+# --- Mannschaftswertung (überarbeitet) ---
+            st.subheader("Mannschaftswertung")
+            team_results = {}
+            for result_key, result_value in results.items():
+                parts = result_key.split("-")
+                shooter = parts[0]
+                context_type = parts[1]
+                context_name = "-".join(parts[2:]) if len(parts) > 2 else None
+                if context_type == "team":
+                    team = context_name
+                    # Ensure result_value is numeric before adding
+                    try:
+                        result_value = float(result_value)  # Or int() if you only have integers
+                        team_results.setdefault(team, []).append(result_value)
+                    except (ValueError, TypeError):
+                        st.warning(f"Ungültiges Ergebnis für {shooter} im Team {team}: {result_value}.  Ergebnis wird ignoriert.")  # Inform user and skip
+                        continue  # Skip this result if it's not a number
 
-                sum_team_results = [{"Mannschaft": team, "Ergebnis": sum(results)} for team, results in team_results.items()]
-                df_team = pd.DataFrame(sum_team_results)
+
+            sum_team_results = []
+            for team, results in team_results.items():
+                if results:  # Check if the team has any valid results
+                    team_sum = sum(results)
+                    sum_team_results.append({"Mannschaft": team, "Ergebnis": team_sum})
+                else:
+                   st.info(f"Keine Ergebnisse für das Team {team} gefunden. Das Team wird in der Wertung nicht berücksichtigt.")
+
+
+            df_team = pd.DataFrame(sum_team_results)
+
+            if not df_team.empty: # Check if the DataFrame is empty
                 df_team = df_team.sort_values(by="Ergebnis", ascending=False)
                 df_team.insert(0, "Platz", range(1, len(df_team) + 1))
                 st.dataframe(df_team.set_index("Platz"))
             else:
-                st.warning(f"Keine Ergebnisse für {selected_competition} gefunden.")
-
-        else:
-            st.error("Bitte Wettbewerb auswählen.")
-
-    if st.button("Speichern", disabled=st.session_state.is_saving):
-        if not st.session_state.is_saving:
-            st.session_state.is_saving = True
-            with st.spinner("Speichere Daten..."): # Ladeindikator
-                # Hier kommt der Code zum Speichern der Daten hin...
-                time.sleep(2)  # Simuliere Speichervorgang (2 Sekunden)
-                st.success("Daten erfolgreich gespeichert!")
-            time.sleep(2)  # 2 Sekunden Sperre nach der Meldung
-            st.session_state.is_saving = False
-
+                st.info("Keine gültigen Mannschaftsergebnisse zum Anzeigen.")
 else:
     st.warning("Bitte erst Ergebnisse und Teilnehmerdaten eingeben.")  # More informative message
