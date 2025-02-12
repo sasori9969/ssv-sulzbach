@@ -51,18 +51,25 @@ if st.button("Add Participant"):
     else:
         st.warning("Please enter both first and last names.")
 
-# Display and Edit/Delete Participants
-if not participants.empty:
-    st.dataframe(participants)  # Display participants table
-    if st.checkbox("Edit/Delete Participants"):
-        selected_participant_index = st.number_input("Select participant index to edit/delete", min_value=0, max_value=len(participants) - 1, step=1)
-        if 0 <= selected_participant_index < len(participants):
-            if st.button("Delete Participant"):
-                participants = participants.drop(selected_participant_index).reset_index(drop=True)
-                save_data(participants, teams, results)
-                st.success("Participant deleted.")
-            # Add editing logic here if needed (more complex UI required)
+# Auswahlfeld für den zu ändernden Teilnehmer
+edit_participant_index = st.selectbox("Teilnehmer zum Ändern", participants.index, format_func=lambda i: f"{participants['First Name'][i]} {participants['Last Name'][i]}")
 
+if st.button("Ändern"):
+    if edit_participant_index is not None:
+        # Füllen Sie die Eingabefelder mit den aktuellen Daten vor
+        st.session_state.edit_first_name = participants['First Name'][edit_participant_index]
+        st.session_state.edit_last_name = participants['Last Name'][edit_participant_index]
+
+        # Eingabefelder für die neuen Daten (verwenden Sie st.session_state, um die Werte zu speichern)
+        new_first_name = st.text_input("Neuer Vorname", value=st.session_state.edit_first_name)
+        new_last_name = st.text_input("Neuer Nachname", value=st.session_state.edit_last_name)
+
+        if st.button("Speichern"):
+            # Aktualisieren Sie den DataFrame
+            participants.loc[edit_participant_index, 'First Name'] = new_first_name
+            participants.loc[edit_participant_index, 'Last Name'] = new_last_name
+            save_data(participants, teams, results)
+            st.success("Teilnehmerdaten geändert.")
 
 # --- Team Management ---
 st.subheader("Teams")

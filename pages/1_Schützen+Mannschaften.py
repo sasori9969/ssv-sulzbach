@@ -17,26 +17,6 @@ st.title("Mannschaften und Schützen verwalten")
 
 participants = load_participants()
 
-# Auswahlfeld für den zu ändernden Teilnehmer
-edit_participant_index = st.selectbox("Teilnehmer zum Ändern", participants.index, format_func=lambda i: f"{participants['First Name'][i]} {participants['Last Name'][i]}")
-
-if st.button("Ändern"):
-    if edit_participant_index is not None:
-        # Füllen Sie die Eingabefelder mit den aktuellen Daten vor
-        st.session_state.edit_first_name = participants['First Name'][edit_participant_index]
-        st.session_state.edit_last_name = participants['Last Name'][edit_participant_index]
-
-        # Eingabefelder für die neuen Daten (verwenden Sie st.session_state, um die Werte zu speichern)
-        new_first_name = st.text_input("Neuer Vorname", value=st.session_state.edit_first_name)
-        new_last_name = st.text_input("Neuer Nachname", value=st.session_state.edit_last_name)
-
-        if st.button("Speichern"):
-            # Aktualisieren Sie den DataFrame
-            participants.loc[edit_participant_index, 'First Name'] = new_first_name
-            participants.loc[edit_participant_index, 'Last Name'] = new_last_name
-            save_data(participants, teams, results)
-            st.success("Teilnehmerdaten geändert.")
-
 # Eingabe für Schützen
 st.subheader("Schützen hinzufügen/bearbeiten")
 shooter_name = st.text_input("Name")
