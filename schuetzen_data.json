@@ -1,0 +1,24 @@
+{
+    "schuetzen": {
+        "Gregor  Knapp": {
+            "einzelstarter": false
+        },
+        "Lydia Knapp": {
+            "einzelstarter": true
+        }
+    },
+    "teams": {
+        "Feuerwehr 1": [
+            "Lydia Knapp",
+            "Gregor  Knapp"
+        ]
+    },
+    "ergebnisse": {
+        "Gregor  Knapp": {
+            "Feuerwehr 1": 151
+        },
+        "Lydia Knapp": {
+            "Feuerwehr 1": 165
+        }
+    }
+}
