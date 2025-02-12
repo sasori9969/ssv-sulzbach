@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 
-# Data Storage (using CSV files)
+# Datenablage (CSV-Dateien)
 DATA_DIR = "schuetzenverein_data"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
@@ -23,7 +23,7 @@ def load_data():
     try:
         results = pd.read_csv(RESULTS_FILE)
     except FileNotFoundError:
-        results = pd.DataFrame(columns=["First Name", "Last Name", "Team Name", "Result"])  # Added Team Name to Results
+        results = pd.DataFrame(columns=["First Name", "Last Name", "Team Name", "Result"])
     return participants, teams, results
 
 def save_data(participants, teams, results):
@@ -35,66 +35,89 @@ participants, teams, results = load_data()
 
 st.title("Schützenverein 1904 e.V. Sulzbach Competition Data")
 
-# --- Participant Management ---
-st.subheader("Participants")
+# --- Teilnehmerverwaltung ---
+st.subheader("Teilnehmer")
 col1, col2 = st.columns(2)
 with col1:
-    first_name = st.text_input("First Name")
+    first_name = st.text_input("Vorname")
 with col2:
-    last_name = st.text_input("Last Name")
-if st.button("Add Participant"):
-    if first_name and last_name:
-        new_participant = pd.DataFrame({"First Name": [first_name], "Last Name": [last_name]})
-        participants = pd.concat([participants, new_participant], ignore_index=True)
-        save_data(participants, teams, results) # Save after each change
-        st.success(f"Participant {first_name} {last_name} added.")
-    else:
-        st.warning("Please enter both first and last names.")
+    last_name = st.text_input("Nachname")
 
 # Auswahlfeld für den zu ändernden Teilnehmer
-edit_participant_index = st.selectbox("Teilnehmer zum Ändern", participants.index, format_func=lambda i: f"{participants['First Name'][i]} {participants['Last Name'][i]}")
+edit_participant_index = st.selectbox("Teilnehmer zum Ändern/Löschen", participants.index, format_func=lambda i: f"{participants['First Name'][i]} {participants['Last Name'][i]}", index=None)
 
-if st.button("Ändern"):
-    if edit_participant_index is not None:
-        # Füllen Sie die Eingabefelder mit den aktuellen Daten vor
-        st.session_state.edit_first_name = participants['First Name'][edit_participant_index]
-        st.session_state.edit_last_name = participants['Last Name'][edit_participant_index]
-
-        # Eingabefelder für die neuen Daten (verwenden Sie st.session_state, um die Werte zu speichern)
-        new_first_name = st.text_input("Neuer Vorname", value=st.session_state.edit_first_name)
-        new_last_name = st.text_input("Neuer Nachname", value=st.session_state.edit_last_name)
-
-        if st.button("Speichern"):
-            # Aktualisieren Sie den DataFrame
-            participants.loc[edit_participant_index, 'First Name'] = new_first_name
-            participants.loc[edit_participant_index, 'Last Name'] = new_last_name
-            save_data(participants, teams, results)
-            st.success("Teilnehmerdaten geändert.")
-
-# --- Team Management ---
-st.subheader("Teams")
-team_name = st.text_input("Team Name")
-available_participants = participants[["First Name", "Last Name"]].apply(lambda x: f"{x['First Name']} {x['Last Name']}", axis=1).tolist()
-selected_members = st.multiselect("Select Team Members", available_participants)
-
-if st.button("Add Team"):
-    if team_name and selected_members:
-        new_team = pd.DataFrame({"Team Name": [team_name]})
-        teams = pd.concat([teams, new_team], ignore_index=True)
-        for member in selected_members:
-            first, last = member.split(" ")
-            new_result = pd.DataFrame({"First Name": [first], "Last Name": [last], "Team Name": [team_name], "Result": 0}, index=[0]) # Initialize Result to 0
-            results = pd.concat([results, new_result], ignore_index=True)
+if st.button("Hinzufügen/Ändern"):
+    if first_name and last_name:
+        new_participant = pd.DataFrame({"First Name": [first_name], "Last Name": [last_name]})
+        if edit_participant_index is not None:  # Ändern
+            participants.loc[edit_participant_index, 'First Name'] = first_name
+            participants.loc[edit_participant_index, 'Last Name'] = last_name
+            st.success(f"Teilnehmerdaten geändert.")
+        else:  # Hinzufügen
+            participants = pd.concat([participants, new_participant], ignore_index=True)
+            st.success(f"Teilnehmer {first_name} {last_name} hinzugefügt.")
         save_data(participants, teams, results)
-        st.success(f"Team {team_name} added with members: {', '.join(selected_members)}")
-    else:
-        st.warning("Please enter a team name and select members.")
+        st.experimental_rerun()  # Aktualisiert die Selectbox sofort
 
-# Display and Edit/Delete Teams (similar edit/delete logic as Participants)
+if st.button("Teilnehmer löschen"):
+    if edit_participant_index is not None:
+        participants = participants.drop(edit_participant_index).reset_index(drop=True)
+        save_data(participants, teams, results)
+        st.success("Teilnehmer gelöscht.")
+        st.experimental_rerun()
+
+if not participants.empty:
+    st.dataframe(participants)
+
+# --- Teamverwaltung ---
+st.subheader("Teams")
+team_name = st.text_input("Teamname")
+
+# Auswahlfeld für bestehende Teams zum Bearbeiten
+edit_team_index = st.selectbox("Team zum Bearbeiten/Ergänzen", teams.index, format_func=lambda i: teams['Team Name'][i], index=None)
+
+available_participants = participants[["First Name", "Last Name"]].apply(lambda x: f"{x['First Name']} {x['Last Name']}", axis=1).tolist()
+selected_members = st.multiselect("Teammitglieder auswählen/hinzufügen", available_participants)
+
+if st.button("Team hinzufügen/bearbeiten"):
+    if team_name and selected_members:
+        if edit_team_index is not None:  # Bearbeiten/Ergänzen
+            current_members = team_members[team_members['Team Name'] == teams['Team Name'][edit_team_index]]
+            for member in selected_members:
+                first, last = member.split(" ")
+                if not ((current_members['First Name'] == first) & (current_members['Last Name'] == last)).any(): #Check if member is already in the team
+                    new_team_member = pd.DataFrame({"Team Name": [teams['Team Name'][edit_team_index]], "First Name": [first], "Last Name": [last]})
+                    team_members = pd.concat([team_members, new_team_member], ignore_index=True)
+                    new_result = pd.DataFrame({"First Name": [first], "Last Name": [last], "Team Name": [teams['Team Name'][edit_team_index]], "Result": 0}, index=[0])
+                    results = pd.concat([results, new_result], ignore_index=True)
+
+            st.success(f"Team {teams['Team Name'][edit_team_index]} bearbeitet/ergänzt.")
+        else:  # Hinzufügen
+            new_team = pd.DataFrame({"Team Name": [team_name]})
+            teams = pd.concat([teams, new_team], ignore_index=True)
+            for member in selected_members:
+                first, last = member.split(" ")
+                new_team_member = pd.DataFrame({"Team Name": [team_name], "First Name": [first], "Last Name": [last]})
+                team_members = pd.concat([team_members, new_team_member], ignore_index=True)
+                new_result = pd.DataFrame({"First Name": [first], "Last Name": [last], "Team Name": [team_name], "Result": 0}, index=[0])
+                results = pd.concat([results, new_result], ignore_index=True)
+            st.success(f"Team {team_name} hinzugefügt mit Mitgliedern: {', '.join(selected_members)}")
+        save_data(participants, teams, results, team_members)
+        st.experimental_rerun()
+
+if st.button("Team löschen"):
+    if edit_team_index is not None:
+        team_to_delete = teams['Team Name'][edit_team_index]
+        teams = teams.drop(edit_team_index).reset_index(drop=True)
+        team_members = team_members[team_members['Team Name'] != team_to_delete]
+        results = results[results['Team Name'] != team_to_delete]
+        save_data(participants, teams, results, team_members)
+        st.success("Team gelöscht.")
+        st.experimental_rerun()
+
+
 if not teams.empty:
     st.dataframe(teams)
-    # Edit/Delete Team logic (similar to participants section)
-
 
 # --- Result Input ---
 st.subheader("Result Input")
